@@ -9,10 +9,14 @@ using namespace std;
 int *random_vector(int size)
 {
     auto v = new int[size];
-    unsigned int seed = rand();
-    for (int i = 0; i < size; ++i)
+    #pragma omp parallel
     {
-        v[i] = rand_r(&seed);
+        unsigned int seed = rand();
+        #pragma omp for
+        for (int i = 0; i < size; ++i)
+        {
+            v[i] = rand_r(&seed);
+        }
     }
     return v;
 }
@@ -22,6 +26,7 @@ void dotp(int n, int* v1, int* v2)
     /* find dot product */
     double dotp = 0.0;
 
+    #pragma omp parallel for reduction(+: dotp) 
     for (int i = 0; i < n; ++i)
     {
         dotp += v1[i] * v2[i];
@@ -29,6 +34,21 @@ void dotp(int n, int* v1, int* v2)
     cout << "dotp = " << dotp << endl;
 }
 
+
+void hello(){
+    #pragma omp parallel num_threads(5)
+    {
+
+        int nt = omp_get_num_threads();
+        int mt = omp_get_num_procs();
+        #pragma omp single
+        {
+            cout << "The hello block is executing with " << nt << " threads, and the number of processors is " << mt << "." << endl;
+        }
+        int tid = omp_get_thread_num();
+        cout << "Hello World from Thread " << tid << endl;
+    }
+}
 
 int main(int argc, char *argv[])
 {
@@ -63,6 +83,7 @@ int main(int argc, char *argv[])
     start = omp_get_wtime();
     
     // do the work
+    // hello();    
     dotp(n, vec1, vec2);
 
     end = omp_get_wtime();
