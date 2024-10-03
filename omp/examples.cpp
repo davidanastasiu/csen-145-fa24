@@ -22,7 +22,6 @@ void dotp(int n, int* v1, int* v2)
     /* find dot product */
     double dotp = 0.0;
 
-    #pragma omp parallel for reduction(+ : dotp)
     for (int i = 0; i < n; ++i)
     {
         dotp += v1[i] * v2[i];
@@ -62,7 +61,10 @@ int main(int argc, char *argv[])
     double start;
     double end;
     start = omp_get_wtime();
+    
+    // do the work
     dotp(n, vec1, vec2);
+
     end = omp_get_wtime();
     cout << "Work took " << end - start << " seconds." << endl;
 
