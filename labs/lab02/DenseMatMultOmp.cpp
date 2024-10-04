@@ -2,6 +2,7 @@
 #include <chrono>  // For measuring execution time
 #include <cstdlib> // For rand() and srand()
 #include <ctime>   
+#include <omp.h>
 using namespace std;
 using namespace std::chrono;
 
@@ -27,6 +28,7 @@ void fillMatrixWithRandomValues(int** matrix, int rows, int cols) {
 int** multiplyMatrices(int** mat1, int** mat2, int rows1, int cols1, int cols2) {
     
     auto mat3 = allocateMatrix(rows1, cols2);
+    #pragma omp parallel for collapse(2)
     for(int i=0; i < rows1; ++i){
         for(int j=0; j < cols2; ++j){
             int v = 0;
@@ -49,6 +51,13 @@ void deallocateMatrix(int** matrix, int rows) {
 
 int main() {
     srand(time(0));
+
+    #pragma omp parallel
+    {
+        int nt = omp_get_num_threads();
+        #pragma omp single
+        cout << "Running with " << nt << " threads." << endl;
+    }
 
     // Test cases with diverse dimensions
     int testCases[10][4] = {
