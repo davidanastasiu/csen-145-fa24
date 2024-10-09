@@ -1,0 +1,55 @@
+Running with 1 threads.
+Test Case 1 (Dimensions: 348x556 * 556x648) - Time taken for matrix multiplication: 116316 microseconds
+Test Case 2 (Dimensions: 600x800 * 800x700) - Time taken for matrix multiplication: 307252 microseconds
+Test Case 3 (Dimensions: 450x600 * 600x750) - Time taken for matrix multiplication: 180047 microseconds
+Test Case 4 (Dimensions: 512x512 * 512x600) - Time taken for matrix multiplication: 140699 microseconds
+Test Case 5 (Dimensions: 700x800 * 800x900) - Time taken for matrix multiplication: 443745 microseconds
+Test Case 6 (Dimensions: 333x444 * 444x555) - Time taken for matrix multiplication: 60459 microseconds
+Test Case 7 (Dimensions: 688x432 * 432x532) - Time taken for matrix multiplication: 114817 microseconds
+Test Case 8 (Dimensions: 760x540 * 540x650) - Time taken for matrix multiplication: 250359 microseconds
+Test Case 9 (Dimensions: 640x480 * 480x720) - Time taken for matrix multiplication: 200093 microseconds
+Test Case 10 (Dimensions: 950x850 * 850x950) - Time taken for matrix multiplication: 709274 microseconds
+Running with 2 threads.
+Test Case 1 (Dimensions: 348x556 * 556x648) - Time taken for matrix multiplication: 62227 microseconds
+Test Case 2 (Dimensions: 600x800 * 800x700) - Time taken for matrix multiplication: 152866 microseconds
+Test Case 3 (Dimensions: 450x600 * 600x750) - Time taken for matrix multiplication: 94145 microseconds
+Test Case 4 (Dimensions: 512x512 * 512x600) - Time taken for matrix multiplication: 75123 microseconds
+Test Case 5 (Dimensions: 700x800 * 800x900) - Time taken for matrix multiplication: 234372 microseconds
+Test Case 6 (Dimensions: 333x444 * 444x555) - Time taken for matrix multiplication: 31332 microseconds
+Test Case 7 (Dimensions: 688x432 * 432x532) - Time taken for matrix multiplication: 62412 microseconds
+Test Case 8 (Dimensions: 760x540 * 540x650) - Time taken for matrix multiplication: 126948 microseconds
+Test Case 9 (Dimensions: 640x480 * 480x720) - Time taken for matrix multiplication: 102880 microseconds
+Test Case 10 (Dimensions: 950x850 * 850x950) - Time taken for matrix multiplication: 358793 microseconds
+Running with 4 threads.
+Test Case 1 (Dimensions: 348x556 * 556x648) - Time taken for matrix multiplication: 32534 microseconds
+Test Case 2 (Dimensions: 600x800 * 800x700) - Time taken for matrix multiplication: 79163 microseconds
+Test Case 3 (Dimensions: 450x600 * 600x750) - Time taken for matrix multiplication: 48938 microseconds
+Test Case 4 (Dimensions: 512x512 * 512x600) - Time taken for matrix multiplication: 39830 microseconds
+Test Case 5 (Dimensions: 700x800 * 800x900) - Time taken for matrix multiplication: 121799 microseconds
+Test Case 6 (Dimensions: 333x444 * 444x555) - Time taken for matrix multiplication: 16419 microseconds
+Test Case 7 (Dimensions: 688x432 * 432x532) - Time taken for matrix multiplication: 32347 microseconds
+Test Case 8 (Dimensions: 760x540 * 540x650) - Time taken for matrix multiplication: 66017 microseconds
+Test Case 9 (Dimensions: 640x480 * 480x720) - Time taken for matrix multiplication: 53066 microseconds
+Test Case 10 (Dimensions: 950x850 * 850x950) - Time taken for matrix multiplication: 185122 microseconds
+Running with 8 threads.
+Test Case 1 (Dimensions: 348x556 * 556x648) - Time taken for matrix multiplication: 18889 microseconds
+Test Case 2 (Dimensions: 600x800 * 800x700) - Time taken for matrix multiplication: 40430 microseconds
+Test Case 3 (Dimensions: 450x600 * 600x750) - Time taken for matrix multiplication: 24795 microseconds
+Test Case 4 (Dimensions: 512x512 * 512x600) - Time taken for matrix multiplication: 20216 microseconds
+Test Case 5 (Dimensions: 700x800 * 800x900) - Time taken for matrix multiplication: 63502 microseconds
+Test Case 6 (Dimensions: 333x444 * 444x555) - Time taken for matrix multiplication: 8540 microseconds
+Test Case 7 (Dimensions: 688x432 * 432x532) - Time taken for matrix multiplication: 17096 microseconds
+Test Case 8 (Dimensions: 760x540 * 540x650) - Time taken for matrix multiplication: 34224 microseconds
+Test Case 9 (Dimensions: 640x480 * 480x720) - Time taken for matrix multiplication: 27597 microseconds
+Test Case 10 (Dimensions: 950x850 * 850x950) - Time taken for matrix multiplication: 94283 microseconds
+Running with 16 threads.
+Test Case 1 (Dimensions: 348x556 * 556x648) - Time taken for matrix multiplication: 15236 microseconds
+Test Case 2 (Dimensions: 600x800 * 800x700) - Time taken for matrix multiplication: 39062 microseconds
+Test Case 3 (Dimensions: 450x600 * 600x750) - Time taken for matrix multiplication: 22446 microseconds
+Test Case 4 (Dimensions: 512x512 * 512x600) - Time taken for matrix multiplication: 19081 microseconds
+Test Case 5 (Dimensions: 700x800 * 800x900) - Time taken for matrix multiplication: 61124 microseconds
+Test Case 6 (Dimensions: 333x444 * 444x555) - Time taken for matrix multiplication: 9189 microseconds
+Test Case 7 (Dimensions: 688x432 * 432x532) - Time taken for matrix multiplication: 16866 microseconds
+Test Case 8 (Dimensions: 760x540 * 540x650) - Time taken for matrix multiplication: 32274 microseconds
+Test Case 9 (Dimensions: 640x480 * 480x720) - Time taken for matrix multiplication: 26820 microseconds
+Test Case 10 (Dimensions: 950x850 * 850x950) - Time taken for matrix multiplication: 185602 microseconds
