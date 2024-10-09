@@ -1,0 +1,16 @@
+A_nrows: 10000
+A_ncols: 10000
+B_ncols: 10000
+factor: 0.15
+tile size: 50
+nthreads: 24
+A<10000, 10000, 15000000>
+B<10000, 10000, 15000000>
+C1<10000, 10000, 99185098>
+Execution time (sparse-sparse dot-product): 58.0982
+C2<10000, 10000, 99185098>
+Execution time (sparse-dense dot-product): 9.96359
+C3<10000, 10000, 99185098>
+Execution time (accumulator): 3.24224
+C1 == C2: true
+C2 == C3: true

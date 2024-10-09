@@ -1,0 +1,17 @@
+A_nrows: 20000
+A_ncols: 5300
+B_ncols: 50000
+factor: 0.2
+tile size: 50
+nthreads: 14
+A<20000, 5300, 21190064>
+B<50000, 5300, 52974941>
+C1<20000, 50000, 990514799>
+Execution time (sparse-sparse dot-product): 642.143
+C2<20000, 50000, 990514799>
+Execution time (sparse-dense dot-product): 105.379
+C3<20000, 50000, 990514799>
+Execution time (accumulator): 34.3216
+C1 == C2: row 11098 val missmatch: 53929.4 != 53929.4
+false
+C2 == C3: true
