@@ -90,7 +90,41 @@ typedef struct csr_t {
    */
   void transpose()
   {
-    /* TODO: Implement matrix transposition */
+    auto nptr = (ptr_t*) calloc(ncols+1, sizeof(ptr_t));
+    auto nind = (idx_t*) malloc(sizeof(idx_t) * ptr[nrows]);
+    auto nval = (val_t*) malloc(sizeof(val_t) * ptr[nrows]);
+    if(!nptr || !nind || !nval){
+      throw std::runtime_error("Could not allocate memory for transpose.");
+    }
+    // count number of non-zeros in each column
+    for(ptr_t i=0; i < ptr[nrows]; ++i){
+      nptr[ind[i]+1]++;
+    }
+    // compute prefix sum
+    for(idx_t i=1; i <= ncols; ++i){
+      nptr[i] += nptr[i-1];
+    }
+    // fill in the values
+    for(idx_t i=0; i < nrows; ++i){
+      for(ptr_t j=ptr[i]; j < ptr[i+1]; ++j){
+        auto col = ind[j];
+        auto idx = nptr[col]++;
+        nind[idx] = i;
+        nval[idx] = val[j];
+      }
+    }
+    // fix the pointer array
+    for(idx_t i=ncols; i > 0; --i){
+      nptr[i] = nptr[i-1];
+    }
+    nptr[0] = 0;
+    free(ptr);
+    free(ind);
+    free(val);
+    ptr = nptr;
+    ind = nind;
+    val = nval;
+    std::swap(nrows, ncols);
   }
 
   /**
@@ -184,7 +218,19 @@ typedef struct csr_t {
   /* sort non-zeros in each row in increasing order of columnd ids */
   void sort_indices()
   {
-    /* TODO: Implement index sorting */
+    std::vector<std::pair<idx_t, val_t>> row;
+    #pragma omp parallel for firstprivate(row)
+    for(idx_t i=0; i < nrows; ++i){
+      for(ptr_t j=ptr[i]; j < ptr[i+1]; ++j){
+        row.push_back(std::make_pair(ind[j], val[j]));
+      }
+      sort(row.begin(), row.end());
+      for(ptr_t j=ptr[i]; j < ptr[i+1]; ++j){
+        ind[j] = row[j-ptr[i]].first;
+        val[j] = row[j-ptr[i]].second;
+      }
+      row.clear();
+    }
   }
 
   /* check if indices are sorted */
@@ -274,7 +320,41 @@ void test_matrix(csr_t * mat){
  */
 void sparsematmult_sparse_sparse_serial(csr_t * A, csr_t * B, csr_t *C)
 {
-  // To implement
+  C->ncols = B->ncols;
+  B->transpose();
+  A->sort_indices();
+  B->sort_indices();
+  ptr_t maxnnz = 100;
+  C->reserve(A->nrows, maxnnz);
+  ptr_t nnz = 0;
+  for(idx_t i=0; i < A->nrows; ++i){
+    for(idx_t j=0; j < B->nrows; ++j){ // B is transposed, so B->nrows is actually B->ncols
+      // computer the dot-product of A[i, :] and B^T[j, i]
+      val_t dot = 0;
+      for(ptr_t k=A->ptr[i], l=B->ptr[j]; k < A->ptr[i+1] && l < B->ptr[j+1];){
+        if(A->ind[k] == B->ind[l]){
+          dot += A->val[k] * B->val[l];
+          k++;
+          l++;
+        } else if(A->ind[k] < B->ind[l]){
+          k++;
+        } else {
+          l++;
+        }
+      }
+      if(dot != 0){
+        if(nnz >= maxnnz){
+          maxnnz *= 2;
+          C->reserve(A->nrows, maxnnz);
+        }
+        C->ind[nnz] = j;
+        C->val[nnz] = dot;
+        nnz++;
+      }
+    }
+    C->ptr[i+1] = nnz;
+  }
+  C->reserve(A->nrows, nnz);
 }
 
 /**
@@ -287,7 +367,41 @@ void sparsematmult_sparse_sparse_serial(csr_t * A, csr_t * B, csr_t *C)
  */
 void sparsematmult_sparse_sparse_parallel(csr_t * A, csr_t * B, csr_t *C)
 {
-  // To implement
+  C->ncols = B->ncols;
+  B->transpose();
+  A->sort_indices();
+  B->sort_indices();
+  ptr_t maxnnz = 100;
+  C->reserve(A->nrows, maxnnz);
+  ptr_t nnz = 0;
+  for(idx_t i=0; i < A->nrows; ++i){
+    for(idx_t j=0; j < B->nrows; ++j){ // B is transposed, so B->nrows is actually B->ncols
+      // computer the dot-product of A[i, :] and B^T[j, i]
+      val_t dot = 0;
+      for(ptr_t k=A->ptr[i], l=B->ptr[j]; k < A->ptr[i+1] && l < B->ptr[j+1];){
+        if(A->ind[k] == B->ind[l]){
+          dot += A->val[k] * B->val[l];
+          k++;
+          l++;
+        } else if(A->ind[k] < B->ind[l]){
+          k++;
+        } else {
+          l++;
+        }
+      }
+      if(dot != 0){
+        if(nnz >= maxnnz){
+          maxnnz *= 2;
+          C->reserve(A->nrows, maxnnz);
+        }
+        C->ind[nnz] = j;
+        C->val[nnz] = dot;
+        nnz++;
+      }
+    }
+    C->ptr[i+1] = nnz;
+  }
+  C->reserve(A->nrows, nnz);
 }
 
 
@@ -295,19 +409,16 @@ void sparsematmult_sparse_sparse_parallel(csr_t * A, csr_t * B, csr_t *C)
 int main(int argc, char *argv[])
 {
   if(argc < 4){
-    cerr << "Invalid options." << endl << "<program> <A_nrows> <A_ncols> <B_ncols> <fill_factor> [-t <num_threads>] [-s]" << endl;
+    cerr << "Invalid options." << endl << "<program> <A_nrows> <A_ncols> <B_ncols> <fill_factor> [-t <num_threads>]" << endl;
     exit(1);
   }
   int nrows = atoi(argv[1]);
   int ncols = atoi(argv[2]);
   int ncols2 = atoi(argv[3]);
   double factor = atof(argv[4]);
-  bool serial = false;
   int nthreads = 1;
   for(int i=5; i < argc; ++i){
-    if(strcasecmp(argv[i], "-s") == 0){
-      serial = true;
-    } else if(strcasecmp(argv[i], "-t") == 0 && i+1 < argc){
+    if(strcasecmp(argv[i], "-t") == 0 && i+1 < argc){
       nthreads = atoi(argv[i+1]);
     }
   }
@@ -330,7 +441,7 @@ int main(int argc, char *argv[])
   cout << B->info("B") << endl;
 
   auto C = new csr_t(); // Note that C has no data allocations so far.
-  if(serial){
+  if(nthreads == 1){
     omp_set_num_threads(1);
     auto t1 = omp_get_wtime();
     sparsematmult_sparse_sparse_serial(A, B, C);
