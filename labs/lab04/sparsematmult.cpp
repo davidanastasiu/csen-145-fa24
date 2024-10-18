@@ -207,7 +207,7 @@ typedef struct csr_t {
           return false;
         }
         if(abs(val[j] - other->val[j]) > eps){
-          cout << "row " << i << " val missmatch: " << val[j] << " != " << other->val[j] << endl;
+          cout << "row " << i <<  " col " << ind[j] << " val missmatch: " << (double) val[j] << " != " << (double) other->val[j] << endl;
           return false;
         }
       }
@@ -374,6 +374,7 @@ void sparsematmult_sparse_sparse_parallel(csr_t * A, csr_t * B, csr_t *C)
   ptr_t maxnnz = 100;
   C->reserve(A->nrows, maxnnz);
   ptr_t nnz = 0;
+  #pragma omp parallel for ordered schedule(static,1) shared(nnz)
   for(idx_t i=0; i < A->nrows; ++i){
     for(idx_t j=0; j < B->nrows; ++j){ // B is transposed, so B->nrows is actually B->ncols
       // computer the dot-product of A[i, :] and B^T[j, i]
@@ -389,21 +390,104 @@ void sparsematmult_sparse_sparse_parallel(csr_t * A, csr_t * B, csr_t *C)
           l++;
         }
       }
-      if(dot != 0){
-        if(nnz >= maxnnz){
-          maxnnz *= 2;
-          C->reserve(A->nrows, maxnnz);
+      #pragma omp ordered
+      {
+        if(dot != 0){
+          if(nnz >= maxnnz){
+            maxnnz *= 2;
+            C->reserve(A->nrows, maxnnz);
+          }
+          C->ind[nnz] = j;
+          C->val[nnz] = dot;
+          nnz++;
         }
-        C->ind[nnz] = j;
-        C->val[nnz] = dot;
-        nnz++;
       }
     }
     C->ptr[i+1] = nnz;
   }
-  C->reserve(A->nrows, nnz);
+  if(nnz > 0){
+    C->reserve(A->nrows, nnz);
+  }
 }
 
+
+/**
+ * Multiply A and B and write output in C.
+ * Note that C has no data allocations (i.e., ptr, ind, and val pointers are null).
+ * Use `csr_t::reserve` to increase C's allocations as necessary.
+ * @param A  Matrix A.
+ * @param B  Matrix B.
+ * @param C  Output matrix
+ */
+void sparsematmult_sparse_sparse_parallel2(csr_t * A, csr_t * B, csr_t *C, idx_t tile_size=10)
+{
+  C->ncols = B->ncols;
+  // first, we need to transpose B in order to access its vectors by column
+  B->transpose();
+  // for the sparse-sparse dot product method to work, we need to sort the non-zeors in each row of A 
+  // by column id and in each column of B by row id
+  A->sort_indices();
+  B->sort_indices();
+  // create initial C space
+  ptr_t maxnnz = B->nrows * 5; // max number of non-zeros in C
+  ptr_t nnz = 0; // current number of non-zeors in C
+
+  C->ncols = B->nrows;
+  C->reserve(A->nrows, maxnnz);
+  #pragma omp parallel
+  {
+    // space for thread to keep temporary results
+    vector<pair<idx_t, val_t>> results;
+    results.reserve(tile_size * B->nrows); // it should never be more than this
+    idx_t * ncands = (idx_t *) calloc(tile_size+1, sizeof(idx_t));
+    if(!ncands){
+      throw std::runtime_error("Could not allocate cands pointer array for thread.");
+    }
+    #pragma omp for ordered schedule(static, 1)
+    for(idx_t i=0; i < A->nrows; i+=tile_size){
+      for(idx_t t=0; t<tile_size && i+t < A->nrows; ++t){
+        idx_t it = i+t;
+        for(idx_t c=0; c < B->nrows; ++c){
+          double v = 0;
+          for(ptr_t j=A->ptr[it], k=B->ptr[c]; j < A->ptr[it+1] && k < B->ptr[c+1]; ){
+            if(A->ind[j] == B->ind[k]){ // same column ID
+              v += (double) A->val[j] * B->val[k];
+              j++;
+              k++;
+            } else if(A->ind[j] < B->ind[k]){
+              j++;
+            } else {
+              k++;
+            }
+          }
+          if(v != 0){
+            results.push_back(make_pair(c, v));
+          }
+        }
+        ncands[t+1] = results.size();
+      }
+      #pragma omp ordered
+      {
+        for(idx_t t=0; t<tile_size && i+t < A->nrows; ++t){
+          if(nnz + ncands[t+1] - ncands[t] > maxnnz){
+            maxnnz *= 2;
+            C->reserve(A->nrows, maxnnz);
+          }
+          for(idx_t r=ncands[t]; r < ncands[t+1]; ++r){
+            C->ind[nnz] = results[r].first;
+            C->val[nnz++] = results[r].second;
+          }
+          C->ptr[i+t+1] = C->ptr[i+t] + ncands[t+1] - ncands[t];
+        }
+        results.clear();
+      }
+    }
+    free(ncands);
+  }
+  if(nnz > 0){
+    C->reserve(A->nrows, nnz);
+  }
+}
 
 
 int main(int argc, char *argv[])
@@ -440,24 +524,48 @@ int main(int argc, char *argv[])
   cout << A->info("A") << endl;
   cout << B->info("B") << endl;
 
+  auto A2 = new csr_t(*A);
+  auto B2 = new csr_t(*B);
   auto C = new csr_t(); // Note that C has no data allocations so far.
-  if(nthreads == 1){
-    omp_set_num_threads(1);
-    auto t1 = omp_get_wtime();
-    sparsematmult_sparse_sparse_serial(A, B, C);
-    auto t2 = omp_get_wtime();
-    cout << C->info("C") << endl;
-    cout << "Execution time (serial sparse-sparse dot-product): " << (t2-t1) << endl;
-  } else {
-    omp_set_num_threads(nthreads);
-    omp_set_num_threads(1);
-    auto t1 = omp_get_wtime();
-    sparsematmult_sparse_sparse_parallel(A, B, C);
-    auto t2 = omp_get_wtime();
-    cout << C->info("C") << endl;
-    cout << "Execution time (parallel sparse-sparse dot-product): " << (t2-t1) << endl;
+  omp_set_num_threads(nthreads);
+  auto t1 = omp_get_wtime();
+  sparsematmult_sparse_sparse_parallel(A, B, C);
+  auto t2 = omp_get_wtime();
+  cout << C->info("C") << endl;
+  cout << "Execution time (parallel sparse-sparse dot-product): " << (t2-t1) << endl;
 
+  auto C2 = new csr_t(); // Note that C has no data allocations so far.
+  t1 = omp_get_wtime();
+  sparsematmult_sparse_sparse_parallel2(A2, B2, C2);
+  t2 = omp_get_wtime();
+  cout << C2->info("C") << endl;
+  cout << "Execution time (parallel sparse-sparse dot-product 2): " << (t2-t1) << endl;
+  if(!C->equal(C2)){
+    cout << "Matrices are not equal." << endl;
+    C->write("C.txt", true);
+    C2->write("C2.txt", true);
+  } else {
+    cout << "Matrices are equal." << endl;
   }
+  delete A2;
+  delete B2;
+  delete C2;
+  // if(nthreads == 1){
+  //   omp_set_num_threads(1);
+  //   auto t1 = omp_get_wtime();
+  //   sparsematmult_sparse_sparse_serial(A, B, C);
+  //   auto t2 = omp_get_wtime();
+  //   cout << C->info("C") << endl;
+  //   cout << "Execution time (serial sparse-sparse dot-product): " << (t2-t1) << endl;
+  // } else {
+  //   omp_set_num_threads(nthreads);
+  //   omp_set_num_threads(1);
+  //   auto t1 = omp_get_wtime();
+  //   sparsematmult_sparse_sparse_parallel(A, B, C);
+  //   auto t2 = omp_get_wtime();
+  //   cout << C->info("C") << endl;
+  //   cout << "Execution time (parallel sparse-sparse dot-product): " << (t2-t1) << endl;
+  // }
 
   delete A;
   delete B;
