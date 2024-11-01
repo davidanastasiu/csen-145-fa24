@@ -503,9 +503,13 @@ int main(int argc, char *argv[])
   int ncols2 = atoi(argv[3]);
   double factor = atof(argv[4]);
   int nthreads = 1;
+  double eps = 1e-3;
   for(int i=5; i < argc; ++i){
     if(strcasecmp(argv[i], "-t") == 0 && i+1 < argc){
       nthreads = atoi(argv[i+1]);
+    }
+    if(strcasecmp(argv[i], "-e") == 0 && i+1 < argc){
+      eps = atof(argv[i+1]);
     }
   }
   cout << "A_nrows: " << nrows << endl;
@@ -561,10 +565,8 @@ int main(int argc, char *argv[])
   t2 = omp_get_wtime();
   cout << C2->info("C") << endl;
   cout << "Execution time (parallel sparse-sparse dot-product 2): " << (t2-t1) << endl;
-  if(!C->equal(C2, 1)){
+  if(!C->equal(C2, eps)){
     cout << "Matrices are not equal." << endl;
-    C->write("C.txt", true);
-    C2->write("C2.txt", true);
   } else {
     cout << "Matrices are equal." << endl;
   }
