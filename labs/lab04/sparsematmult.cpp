@@ -1,5 +1,6 @@
 #include <fstream>
 #include <iostream>
+#include <iomanip>
 #include <omp.h>
 #include <stdlib.h>     /* srand, rand */
 #include <time.h>       /* time */
@@ -206,8 +207,9 @@ typedef struct csr_t {
           cout << "row " << i << " cid missmatch: " << ind[j] << " != " << other->ind[j] << endl;
           return false;
         }
-        if(abs(val[j] - other->val[j]) > eps){
-          cout << "row " << i <<  " col " << ind[j] << " val missmatch: " << (double) val[j] << " != " << (double) other->val[j] << endl;
+        if(fabs(val[j] - other->val[j]) > eps){
+          cout << std::setprecision(15) << "row " << i <<  " col " << ind[j] << " val missmatch: " << val[j] << " != " << other->val[j] << 
+          " error: " << fabs(val[j] - other->val[j]) << endl;
           return false;
         }
       }
@@ -492,7 +494,7 @@ void sparsematmult_sparse_sparse_parallel2(csr_t * A, csr_t * B, csr_t *C, idx_t
 
 int main(int argc, char *argv[])
 {
-  if(argc < 4){
+  if(argc < 5){
     cerr << "Invalid options." << endl << "<program> <A_nrows> <A_ncols> <B_ncols> <fill_factor> [-t <num_threads>]" << endl;
     exit(1);
   }
@@ -524,32 +526,8 @@ int main(int argc, char *argv[])
   cout << A->info("A") << endl;
   cout << B->info("B") << endl;
 
-  auto A2 = new csr_t(*A);
-  auto B2 = new csr_t(*B);
   auto C = new csr_t(); // Note that C has no data allocations so far.
-  omp_set_num_threads(nthreads);
-  auto t1 = omp_get_wtime();
-  sparsematmult_sparse_sparse_parallel(A, B, C);
-  auto t2 = omp_get_wtime();
-  cout << C->info("C") << endl;
-  cout << "Execution time (parallel sparse-sparse dot-product): " << (t2-t1) << endl;
 
-  auto C2 = new csr_t(); // Note that C has no data allocations so far.
-  t1 = omp_get_wtime();
-  sparsematmult_sparse_sparse_parallel2(A2, B2, C2);
-  t2 = omp_get_wtime();
-  cout << C2->info("C") << endl;
-  cout << "Execution time (parallel sparse-sparse dot-product 2): " << (t2-t1) << endl;
-  if(!C->equal(C2)){
-    cout << "Matrices are not equal." << endl;
-    C->write("C.txt", true);
-    C2->write("C2.txt", true);
-  } else {
-    cout << "Matrices are equal." << endl;
-  }
-  delete A2;
-  delete B2;
-  delete C2;
   // if(nthreads == 1){
   //   omp_set_num_threads(1);
   //   auto t1 = omp_get_wtime();
@@ -559,13 +537,40 @@ int main(int argc, char *argv[])
   //   cout << "Execution time (serial sparse-sparse dot-product): " << (t2-t1) << endl;
   // } else {
   //   omp_set_num_threads(nthreads);
-  //   omp_set_num_threads(1);
   //   auto t1 = omp_get_wtime();
   //   sparsematmult_sparse_sparse_parallel(A, B, C);
   //   auto t2 = omp_get_wtime();
   //   cout << C->info("C") << endl;
   //   cout << "Execution time (parallel sparse-sparse dot-product): " << (t2-t1) << endl;
   // }
+
+  omp_set_num_threads(nthreads);
+
+  auto A2 = new csr_t(*A);
+  auto B2 = new csr_t(*B);
+  auto C2 = new csr_t(); // Note that C has no data allocations so far.
+
+  auto t1 = omp_get_wtime();
+  sparsematmult_sparse_sparse_parallel(A, B, C);
+  auto t2 = omp_get_wtime();
+  cout << C->info("C") << endl;
+  cout << "Execution time (parallel sparse-sparse dot-product): " << (t2-t1) << endl;
+
+  t1 = omp_get_wtime();
+  sparsematmult_sparse_sparse_parallel2(A2, B2, C2);
+  t2 = omp_get_wtime();
+  cout << C2->info("C") << endl;
+  cout << "Execution time (parallel sparse-sparse dot-product 2): " << (t2-t1) << endl;
+  if(!C->equal(C2, 1)){
+    cout << "Matrices are not equal." << endl;
+    C->write("C.txt", true);
+    C2->write("C2.txt", true);
+  } else {
+    cout << "Matrices are equal." << endl;
+  }
+  delete A2;
+  delete B2;
+  delete C2;
 
   delete A;
   delete B;
