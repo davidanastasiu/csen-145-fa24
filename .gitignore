@@ -1,6 +1,9 @@
 # Prerequisites
 *.d
 
+# Document files
+*.docx
+
 # Compiled Object files
 *.slo
 *.lo
