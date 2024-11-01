@@ -180,7 +180,7 @@ typedef struct csr_t {
         std::shuffle(perm.begin(), perm.end(), engine);
         for(ptr_t j=mat->ptr[i]; j < mat->ptr[i+1]; ++j){
           mat->ind[j] = perm[j - mat->ptr[i]];
-          mat->val[j] = ((double) rand_r(&seed)/rand_r(&seed));
+          mat->val[j] = ((double) rand_r(&seed)/RAND_MAX);
         }
       }
     }
@@ -518,6 +518,7 @@ int main(int argc, char *argv[])
   cout << "B_ncols: " << ncols2 << endl;
   cout << "factor: " << factor << endl;
   cout << "nthreads: " << nthreads << endl;
+  cout << "eps: " << eps << endl;
 
   /* initialize random seed: */
   srand (time(NULL));
