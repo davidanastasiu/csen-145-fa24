@@ -16,7 +16,19 @@
  * @param k ncols of B and C
 */
 void omp_cpu_matmult(double *a, double *b, double *c, unsigned int m, unsigned int n, unsigned int k) {
-  // Implement matrix multiplication using OpenMP
+  #pragma omp parallel for collapse(2) schedule(static)
+  for (int i = 0; i < m; ++i)
+  {
+    for (int j = 0; j < k; ++j)
+    {
+      double v = 0.0;
+      for (int h = 0; h < n; ++h)
+      {
+        v += a[i * n + h] * b[h * k + j];
+      }
+      c[i * k + j] = v;
+    }
+  }
 }
 
 int main(int argc, char const *argv[])
