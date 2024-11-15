@@ -373,7 +373,7 @@ void get_cluto_stats(FILE * infile, idx_t * nrows, idx_t * ncols, ptr_t * nnz)
 void get_cluto_stats(char * fname, idx_t * nrows, idx_t * ncols, ptr_t * nnz)
 {
   FILE * infile = fopen(fname, "r");
-  get_cluto_stats(infile, &nrows, &ncols, &nnz);
+  get_cluto_stats(infile, nrows, ncols, nnz);
   fclose(infile);
 }
 
@@ -428,6 +428,10 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
+  MPI_Init(&argc, &argv);
+  int world_rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+  
   // read and distribute the input cluto matrix
   if(world_rank == 0) cout << "Process 0: Broadcasting DB matrix." << endl;
   auto mat = read_and_bcast_csr(argv[1], MPI_COMM_WORLD); // local subset of DB matrix
@@ -439,9 +443,13 @@ int main(int argc, char *argv[])
   get_cluto_stats(argv[1], &nrows, &ncols, &nnz);
   MPI_Allreduce(&mat->nrows, &tnrows, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(&mat->ptr[mat->nrows], &tnnz, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
-  if(tnrows != nrows || tnnz == nnz){
-    cerr << "Error: Distributed matrix has " << tnrows << " rows and " << tnnz << " non-zeros, but should have " << nrows << " rows and " << nnz << " non-zeros." << endl;
-  }
+  if(world_rank == 0)
+    if(tnrows != nrows || tnnz != nnz){
+      cerr << "Error: Distributed matrix has " << tnrows << " rows and " << tnnz << " non-zeros, but should have " << nrows << " rows and " << nnz << " non-zeros." << endl;
+    } else {
+      cout << "Distribution successful!" << endl;
+      cout << "Global matrix stats: CSR<" << nrows << ", " << ncols << ", " << nnz << ">" << endl; 
+    }
 
   delete mat;
 
@@ -450,3 +458,4 @@ int main(int argc, char *argv[])
 
   return 0;
 }
+
