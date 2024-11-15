@@ -372,8 +372,6 @@ void get_cluto_stats(FILE * infile, idx_t * nrows, idx_t * ncols, ptr_t * nnz)
 */
 void get_cluto_stats(char * fname, idx_t * nrows, idx_t * ncols, ptr_t * nnz)
 {
-  idx_t nrows, ncols;
-  ptr_t nnz;
   FILE * infile = fopen(fname, "r");
   get_cluto_stats(infile, &nrows, &ncols, &nnz);
   fclose(infile);
@@ -445,7 +443,6 @@ int main(int argc, char *argv[])
     cerr << "Error: Distributed matrix has " << tnrows << " rows and " << tnnz << " non-zeros, but should have " << nrows << " rows and " << nnz << " non-zeros." << endl;
   }
 
-  // remember to clean up dynamically allocated memory
   delete mat;
 
   // Finalize the MPI environment.
